@@ -46,8 +46,9 @@ const SocketProvider: React.FC = ({children}) => {
     Alert.alert('Connection lost.')
   }
   useEffect(()=>{
-    socket.on('data', ({me})=>{
+    socket.on('data', async ({me})=>{
       if(!me)return;
+      await startMedia()
       setSearching(true)
     })
     return ()=>{
