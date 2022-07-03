@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {createContext, useState, useContext, useEffect} from 'react';
 import {
   RTCPeerConnection,
@@ -20,7 +21,7 @@ type WebRTCContextData = {
   startMedia: ()=>Promise<MediaStream>,
   videoToggle:()=>void, 
   stopMedia:()=>void, 
-  reset:()=>void, 
+  reset:()=>RTCPeerConnection, 
   partnerConnect:(partnerData:any)=>void,
   partnerDisconnect:()=>void,
   setLocalDescription:(offer: RTCSessionDescriptionType) =>Promise<void>,
@@ -78,20 +79,31 @@ const WebRTCProvider: React.FC = ({children}) => {
     setReconnectionTimes((reconnections)=>reconnections+1)
   }
   const videoToggle = () =>{
-    setMediaOptions((op)=>({...op, video: !op.video}))
+    setMediaOptions ((op)=>{
+      AsyncStorage.setItem('camera', op.video?'OFF':'ON');
+      return ({...op, video: !op.video})
+    })
   }
+  useEffect(()=>{
+    AsyncStorage.getItem('camera').then((camera)=>{
+      setMediaOptions((op)=>({...op, video: camera == 'ON'}))
+    })
+  }, [])
   const reset = () => {
+    let mynewConn = RTC_PEER()
     setReconnectionTimes(0)
     myconn.close()
     setLocalStream(undefined)
     setRemoteStream(undefined)
     setSearching(false)
     setPartner(undefined)
-    setMyconn(RTC_PEER())
+    setMyconn(mynewConn)
+    return mynewConn
     // socketEvent.emit('call-reset')
   }
   const startMedia = async () => {
-    const media = await mediaDevices.getUserMedia(mediaOptions)
+    let camera = await AsyncStorage.getItem('camera')
+    const media = await mediaDevices.getUserMedia({...mediaOptions, video: camera == 'ON'})
     setLocalStream(media);
     myconn.addStream(media)
     return media;
@@ -108,7 +120,7 @@ const WebRTCProvider: React.FC = ({children}) => {
       });
     })
   }
-  const handleAnswer = (answer:RTCSessionDescriptionType) => {    
+  const handleAnswer = (answer:RTCSessionDescriptionType) => {
     return myconn.setRemoteDescription(new RTCSessionDescription(answer));
   };
   const setLocalDescription = (offer: RTCSessionDescriptionType) => {

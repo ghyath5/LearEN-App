@@ -7,6 +7,7 @@ import {useAuth} from '../context/Auth';
 import {Loading} from '../components/Loading';
 import { SocketProvider } from '../context/Socket';
 import { WebRTCProvider } from '../context/RTC';
+import { NotificationProvider } from '../context/Notification';
 
 export const Router = () => {
   const {session, loading} = useAuth();
@@ -17,12 +18,14 @@ export const Router = () => {
   return (
     <NavigationContainer>
         {session ? 
-           <WebRTCProvider> 
-            <SocketProvider>
-                  {/* // <CallProvider> */}
-                    <AppStack />
-                  {/* // </CallProvider> */}
-            </SocketProvider>
+           <WebRTCProvider>
+            <NotificationProvider>
+              <SocketProvider>
+                    {/* // <CallProvider> */}
+                      <AppStack />
+                    {/* // </CallProvider> */}
+              </SocketProvider>
+            </NotificationProvider>
           </WebRTCProvider>
         : 
         <AuthStack />}

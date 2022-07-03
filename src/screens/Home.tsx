@@ -12,15 +12,16 @@ import { Switch, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { getCountryNameAsync } from 'react-native-country-picker-modal/lib/CountryService';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome'
+
 // import { socketEvent } from '../services/Events';
 const HomeScreen = () => {
   const colorScheme = Appearance.getColorScheme();
   const {isInternetReachable:network} = useNetInfo()
   const {width, height} = Dimensions.get('screen')
-  const {localStream, partner, remoteStream, reset, stopMedia, videoToggle, mediaOptions,setSearching, searching} = useWebRTC()
+  const {localStream, partner, remoteStream, videoToggle, mediaOptions,setSearching, searching} = useWebRTC()
   const {search:sendSearch, hangUp:sendHangup} = useSocket()
   const [callDuration, setCallDuration] = useState(360)
-  const [searchDuration, setSearchDuration] = useState(60)
+  const [searchDuration, setSearchDuration] = useState(300)
   const [micMuted, setMicMuted] = useState(false)
   const [countryName, setCountryName] = useState('Unknown')
   const {session} = useAuth()
@@ -28,7 +29,7 @@ const HomeScreen = () => {
     InCallManager.setMicrophoneMute(micMuted)
   }, [micMuted])
   const isConnected = useMemo(()=>(partner?.data && partner.id && remoteStream?.active), [partner, localStream, remoteStream])
-  useEffect(()=>{
+  useEffect(()=>{    
     if(isConnected){
       setSearching(false)
       InCallManager.setForceSpeakerphoneOn(true);
@@ -50,11 +51,11 @@ const HomeScreen = () => {
   }
   useEffect(()=>{
     if(!searching){
-      return setSearchDuration(60)
+      return setSearchDuration(300)
     }
     const myint = setInterval(()=>{
       if(searchDuration <= 0){
-        setSearchDuration(60)
+        setSearchDuration(300)
         clearInterval(myint)
         setSearching(false)
         return sendHangup()
@@ -66,7 +67,7 @@ const HomeScreen = () => {
     }
   }, [searching, searchDuration])
   useEffect(()=>{
-    setSearchDuration(60)
+    setSearchDuration(300)
   }, [partner?.id])
   return (
     <View style={{flex:1, backgroundColor: colorScheme == 'dark'?'black':'white'}}>

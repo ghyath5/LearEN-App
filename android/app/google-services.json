@@ -1,0 +1,39 @@
+{
+    "project_info": {
+      "project_number": "16405131447",
+      "project_id": "learen",
+      "storage_bucket": "learen.appspot.com"
+    },
+    "client": [
+      {
+        "client_info": {
+          "mobilesdk_app_id": "1:16405131447:android:4390ec00aae50bd1a09d32",
+          "android_client_info": {
+            "package_name": "com.learen.ghyath"
+          }
+        },
+        "oauth_client": [
+          {
+            "client_id": "16405131447-51johc9f0795rcsn969nh5endhh9ppnh.apps.googleusercontent.com",
+            "client_type": 3
+          }
+        ],
+        "api_key": [
+          {
+            "current_key": "AIzaSyA6Kx-a5qSxtl7wyqbsg7T9P2pXZor1lzI"
+          }
+        ],
+        "services": {
+          "appinvite_service": {
+            "other_platform_oauth_client": [
+              {
+                "client_id": "16405131447-51johc9f0795rcsn969nh5endhh9ppnh.apps.googleusercontent.com",
+                "client_type": 3
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "configuration_version": "1"
+  }
