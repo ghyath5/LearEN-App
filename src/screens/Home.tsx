@@ -115,10 +115,9 @@ const HomeScreen = () => {
             <View style={{alignItems:'center', justifyContent:'space-between'}}>
               <ActivityIndicator size={40} style={{top:-30,position:'relative'}} />
               <TouchableWithoutFeedback onPress={()=>{
-                if(!network || searching)return;
                 setMicMuted(false)
-                setSearching(true)
-                sendSearch({data:session})
+                // setSearching(true)
+                // sendSearch({data:session})
               }}>
               <Text style={{padding:10}} onPress={()=>{
                 setSearching(false)
@@ -146,7 +145,9 @@ const HomeScreen = () => {
             colorsTime={[180, 90, 0]}
             onComplete={()=>{
               // stopMedia()
-              sendHangup()
+              setTimeout(()=>{
+                sendHangup()
+              }, 1000)
             }}
           >
             {({ remainingTime }) => <Text style={{fontSize:20}}>

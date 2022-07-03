@@ -22,7 +22,7 @@ const SocketProvider: React.FC = ({children}) => {
   const {setConnecting} = useNotification()
   const {session} = useAuth()
   // const netInfo = useNetInfo();
-  const { searching, initializer, remoteStream, localStream, setInitializer, myconn, createOffer, setLocalDescription, reset, startMedia, partnerConnect, addIceCandidate,handleAnswer, stopMedia, partner} = useWebRTC()
+  const { searching, initializer, remoteStream, localStream, setInitializer, myconn, createOffer, setLocalDescription, reset, startMedia, partnerConnect, addIceCandidate,handleAnswer, stopMedia, partner, setSearching} = useWebRTC()
   const isConnected = useMemo(()=>(partner?.data && partner.id && remoteStream?.active), [partner, localStream, remoteStream])
   const search = async (props:InitlizeProps) => {
     // reset()
@@ -45,6 +45,15 @@ const SocketProvider: React.FC = ({children}) => {
     reset()
     Alert.alert('Connection lost.')
   }
+  useEffect(()=>{
+    socket.on('data', ({me})=>{
+      if(!me)return;
+      setSearching(true)
+    })
+    return ()=>{
+      socket.off('data')
+    }
+  }, [])
   useEffect(()=>{
   //   socket.io.on("reconnect_attempt", () => {
   //     console.log(session?.name,'reconnect_attempt');
