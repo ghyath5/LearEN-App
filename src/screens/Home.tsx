@@ -12,9 +12,11 @@ import { Switch, TouchableWithoutFeedback } from 'react-native-gesture-handler';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { getCountryNameAsync } from 'react-native-country-picker-modal/lib/CountryService';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome'
+import { useNotification } from '../context/Notification';
 
 // import { socketEvent } from '../services/Events';
 const HomeScreen = () => {
+  const {connecting} = useNotification()
   const colorScheme = Appearance.getColorScheme();
   const {isInternetReachable:network} = useNetInfo()
   const {width, height} = Dimensions.get('screen')
@@ -28,7 +30,7 @@ const HomeScreen = () => {
   useEffect(()=>{
     InCallManager.setMicrophoneMute(micMuted)
   }, [micMuted])
-  const isConnected = useMemo(()=>(partner?.data && partner.id && remoteStream?.active), [partner, localStream, remoteStream])
+  const isConnected = useMemo(()=>(partner?.data && partner.id && remoteStream?.active && !connecting), [partner, localStream, remoteStream, connecting])
   useEffect(()=>{    
     if(isConnected){
       setSearching(false)
@@ -128,10 +130,10 @@ const HomeScreen = () => {
             </View>}
           </View>
           {!searching && (<View style={{justifyContent:'center', padding:20, alignItems:'center'}}>
-            <Text>Camera: {mediaOptions.video?'ON':'OFF'}</Text>
+            <Text>Camera: {mediaOptions?.video?'ON':'OFF'}</Text>
             <Switch style={{}} onValueChange={()=>{
               videoToggle()
-            }} value={mediaOptions.video}></Switch>
+            }} value={mediaOptions?.video}></Switch>
           </View>)}
         </View>
         </>:

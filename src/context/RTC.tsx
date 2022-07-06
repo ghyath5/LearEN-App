@@ -40,28 +40,25 @@ type WebRTCContextData = {
 const WebRTCContext = createContext<WebRTCContextData>({} as WebRTCContextData);
 const RTC_PEER = () =>{
   return new RTCPeerConnection({
+    iceTransportPolicy:'all',
     iceServers: [
+      {
+        username: "nwNMneiGkZ_kydK2jl9YI-CPrZI9CuIDDSPCpOWgkCT81ejg4VKNTpl3dHYBKcBHAAAAAGLFxS5naHlhdGg=",
+        credential: "6b89ae16-fd50-11ec-99aa-0242ac120004",
+        urls: [
+            "turn:fr-turn1.xirsys.com:80?transport=udp",
+            "turn:fr-turn1.xirsys.com:3478?transport=udp",
+            "turn:fr-turn1.xirsys.com:80?transport=tcp",
+            "turn:fr-turn1.xirsys.com:3478?transport=tcp",
+            "turns:fr-turn1.xirsys.com:443?transport=tcp",
+            "turns:fr-turn1.xirsys.com:5349?transport=tcp"
+        ]
+     },
       {
         urls: [
           'stun:stun.l.google.com:19302',
-          'stun:stun2.l.google.com:19302',
-          'stun:openrelay.metered.ca:80'
+          'stun:stun2.l.google.com:19302'
         ], 
-      },
-      {
-        urls: ["turn:openrelay.metered.ca:443"],
-        username: "openrelayproject",
-        credential: "openrelayproject",
-      },
-      {
-        urls: ["turn:openrelay.metered.ca:80"],
-        username: "openrelayproject",
-        credential: "openrelayproject",
-      },
-      {
-          urls: ['turn:turn.anyfirewall.com:443?transport=tcp'],
-          credential: 'webrtc',
-          username: 'webrtc'
       }
     ],
   })

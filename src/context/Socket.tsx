@@ -54,7 +54,7 @@ const SocketProvider: React.FC = ({children}) => {
     return ()=>{
       socket.off('data')
     }
-  }, [])
+  }, [myconn])
   useEffect(()=>{
   //   socket.io.on("reconnect_attempt", () => {
   //     console.log(session?.name,'reconnect_attempt');
@@ -72,9 +72,19 @@ const SocketProvider: React.FC = ({children}) => {
     }
   }, [partner?.id, myconn,session?.name,initializer])
   useEffect(()=>{
-    if(!initializer || !partner?.id || !myconn)return;
-    myconn.oniceconnectionstatechange = ()=>{      
-      if(initializer && partner?.id && (myconn.iceConnectionState == 'failed' || myconn.connectionState == 'failed')){
+    if(!partner?.id || !myconn)return;
+    myconn.oniceconnectionstatechange = ()=>{
+      console.log(myconn.iceConnectionState);
+      
+      if(myconn.iceConnectionState == 'checking'){
+        setConnecting(true)
+      }
+      if(myconn.iceConnectionState == 'connected'){
+        setConnecting(false)
+      }
+      if(partner?.id && (myconn.iceConnectionState == 'failed' || myconn.connectionState == 'failed')){
+        console.log('restart server');
+        
         createOffer({iceRestart: true, offerToReceiveAudio:true, offerToReceiveVideo: true}).then((offer)=>{
           socket.emit('calling', {offer, id: partner.id})
         })
@@ -82,7 +92,7 @@ const SocketProvider: React.FC = ({children}) => {
       }
     }
     return ()=>{ }
-  }, [myconn, partner?.id, initializer])
+  }, [myconn, partner?.id])
   // useEffect(()=>{
   //   socket.connect()
   //   return ()=>{
@@ -100,8 +110,9 @@ const SocketProvider: React.FC = ({children}) => {
 
   useEffect(() => {
     AsyncStorage.getItem('notify-data').then(async (data)=>{
+    //  setTimeout( async ()=>{
       try{
-        AsyncStorage.removeItem('notify-data')
+        await AsyncStorage.removeItem('notify-data')
         const parsedData = JSON.parse(data||'{}')        
         if(parsedData?.id && !isConnected){
           setConnecting(true)
@@ -114,29 +125,28 @@ const SocketProvider: React.FC = ({children}) => {
             const answer = await myconn.createAnswer();
             await setLocalDescription(answer);
             socket.emit('answer', {id: parsedData?.id, answer})
-            setConnecting(false)
+            // setConnecting(false)
           })
-        }else{
-          setConnecting(false)
         }
       }catch(e){
         console.log(e);
       }
+    //  }, 500)
     })
     messaging().subscribeToTopic(`${getUniqueId()}-call-started`)
     return ()=>{
       messaging().unsubscribeFromTopic(`${getUniqueId()}-call-started`)
     }
-  }, [myconn,isConnected]);
+  }, [myconn]);
   useEffect(()=>{
     socket.on('candidate', (candidate)=>{
-      if(!partner?.id) return;
+      if(!partner?.id && myconn.remoteDescription && myconn.localDescription && remoteStream) return;
       addIceCandidate(candidate);
     })
     return ()=>{
       socket.off('candidate')
     }
-  },[partner?.id, myconn])
+  },[partner?.id, myconn,remoteStream])
 
   useEffect(()=>{
     socket.on('link', (data)=>{
@@ -150,7 +160,7 @@ const SocketProvider: React.FC = ({children}) => {
   useEffect(()=>{
     socket.on('set answer', (data)=>{
       if(!partner?.id || partner?.id != data.id)return;
-      setConnecting(false)
+      // setConnecting(false)
       handleAnswer(data.answer)
     })
     return ()=>{
@@ -160,12 +170,12 @@ const SocketProvider: React.FC = ({children}) => {
 
   useEffect(()=>{
     socket.on('call', async (data)=>{
-      if(!searching)return;      
+      // if(!searching)return;
       await handleAnswer(data.offer)
       const answer = await myconn.createAnswer();
       await setLocalDescription(answer);
       socket.emit('answer', {id: data.id, answer})
-      setConnecting(false)
+      // setConnecting(false)
     })
     return ()=>{
       socket.off('call')

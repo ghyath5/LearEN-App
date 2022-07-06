@@ -37,7 +37,7 @@ export const Connecting = ({}) => {
                 <Text style={{color:'black'}}>{cutText(countryName??'LB', 25)}</Text>
             </View>
         </View>
-        <Text >Calling ...</Text>
+        <Text style={{color:'black'}}>Calling ...</Text>
       {/* <ActivityIndicator color={'#000'} animating={true} size="small" /> */}
     </View>
   );
