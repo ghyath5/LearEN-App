@@ -19,7 +19,7 @@ type SocketContextData = {
 const SocketContext = createContext<SocketContextData>({} as SocketContextData);
 const socket = io(SERVER_URL, {auth:{id: getUniqueId() } } )
 const SocketProvider: React.FC = ({children}) => {
-  const {setConnecting} = useNotification()
+  const {setConnecting, connecting} = useNotification()
   const {session} = useAuth()
   // const netInfo = useNetInfo();
   const { searching, initializer, remoteStream, localStream, setInitializer, myconn, createOffer, setLocalDescription, reset, startMedia, partnerConnect, addIceCandidate,handleAnswer, stopMedia, partner, setSearching} = useWebRTC()
@@ -70,14 +70,33 @@ const SocketProvider: React.FC = ({children}) => {
       socket.off('connect_error')
       // socket.off('reconnect_attempt')
     }
-  }, [partner?.id, myconn,session?.name,initializer])
+  }, [partner?.id, myconn])
+  // useEffect(()=>{
+  //   myconn.oniceconnectionstatechange = ()=>{
+  //     // console.log(partner?.data?.name, myconn.iceConnectionState, myconn.connectionState);
+  //   }
+  //   myconn.onicegatheringstatechange = () => {
+  //     // console.log(partner?.data?.name, myconn.connectionState, 'gathering');
+      
+  //   }
+  // }, [myconn, partner])
   useEffect(()=>{
     if(!partner?.id || !myconn)return;
+    let mytimeout: string | number | NodeJS.Timeout | undefined;
     myconn.oniceconnectionstatechange = ()=>{
-      console.log(myconn.iceConnectionState);
-      
+      clearTimeout(mytimeout)
+      console.log(partner?.data?.name, myconn.iceConnectionState, myconn.connectionState);
       if(myconn.iceConnectionState == 'checking'){
         setConnecting(true)
+        console.log(myconn.signalingState);
+        mytimeout = setTimeout(()=>{
+          console.log('rest');
+          
+          createOffer({iceRestart: true, offerToReceiveAudio:true, offerToReceiveVideo: true}).then((offer)=>{
+            socket.emit('calling', {offer, id: partner.id})
+          })
+        }, 4000)
+        
       }
       if(myconn.iceConnectionState == 'connected'){
         setConnecting(false)
@@ -99,6 +118,14 @@ const SocketProvider: React.FC = ({children}) => {
 
   //   }
   // }, [netInfo.isConnected])
+  useEffect(()=>{
+    socket.on('disconnected already', ()=>{
+      if(!connecting)return;
+      reset()
+      Alert.alert("Your friend has left the call.")
+      setConnecting(false)
+    })
+  }, [connecting])
   useEffect(()=>{
     socket.on('hangup', ()=>{
       reset()
@@ -161,6 +188,8 @@ const SocketProvider: React.FC = ({children}) => {
     socket.on('set answer', (data)=>{
       if(!partner?.id || partner?.id != data.id)return;
       // setConnecting(false)
+      console.log(myconn.signalingState, 'set anser');
+      
       handleAnswer(data.answer)
     })
     return ()=>{
