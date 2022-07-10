@@ -13,16 +13,14 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { getCountryNameAsync } from 'react-native-country-picker-modal/lib/CountryService';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome'
 import { useNotification } from '../context/Notification';
-
-// import { socketEvent } from '../services/Events';
 const HomeScreen = () => {
   const {connecting} = useNotification()
   const colorScheme = Appearance.getColorScheme();
   const {isInternetReachable:network} = useNetInfo()
   const {width, height} = Dimensions.get('screen')
-  const {localStream, partner, remoteStream, videoToggle, mediaOptions,setSearching, searching} = useWebRTC()
+  const {localStream, partner, remoteStream, videoToggle, myconn, mediaOptions,setSearching, searching} = useWebRTC()
   const {search:sendSearch, hangUp:sendHangup} = useSocket()
-  const [callDuration, setCallDuration] = useState(360)
+  const [callDuration, setCallDuration] = useState(600)
   const [searchDuration, setSearchDuration] = useState(300)
   const [micMuted, setMicMuted] = useState(false)
   const [countryName, setCountryName] = useState('Unknown')
@@ -39,6 +37,7 @@ const HomeScreen = () => {
       InCallManager.setKeepScreenOn(true)
     }
   }, [isConnected])
+
   const isVideo = useMemo(()=>remoteStream?.getVideoTracks()?.length, [remoteStream])
   useEffect(()=>{
     if(partner?.data?.countryCode){
@@ -71,15 +70,24 @@ const HomeScreen = () => {
   useEffect(()=>{
     setSearchDuration(300)
   }, [partner?.id])
+  const connectionState = useMemo(()=>{
+    if(myconn?.iceConnectionState == 'completed' || myconn?.iceConnectionState == 'connected'){
+      return 'connected'
+    }
+    if(myconn?.iceConnectionState == 'checking'){
+      return 'checking'
+    }
+    return myconn.iceConnectionState
+  }, [myconn, myconn.iceConnectionState])
   return (
     <View style={{flex:1, backgroundColor: colorScheme == 'dark'?'black':'white'}}>
       {isConnected ?
       <View style={{flex:1}}>
-        <View style={{paddingVertical: 8, flexDirection:'row',justifyContent:'space-around', zIndex:10, backgroundColor:'#07b2ff'}}>
+        <View style={{paddingVertical: 8, flexDirection:'row', justifyContent:'space-around', alignItems:'center', zIndex:10, backgroundColor: connectionState == 'connected' ? '#7CD820': '#FFD428'}}>
           <View style={{ flexDirection:'row', justifyContent:'center', alignItems:'center'}}>
             <FontAwesomeIcon color={'white'} name='user-o' size={20}/>
-            <Text style={{ paddingHorizontal:8, fontSize:18, color:'white', textAlign:'center',}} numberOfLines={1} >
-            {cutText(partner!.data!.name!)}
+            <Text style={{ paddingHorizontal:8, fontSize:18, color:'white', textAlign:'center',}} numberOfLines={1}>
+              {cutText(partner!.data!.name!)}
             </Text>
           </View>
           <View style={{ flexDirection:'row', justifyContent:'center', alignItems:'center'}}>
@@ -139,12 +147,12 @@ const HomeScreen = () => {
         </>:
         <>
         <View style={{ position:'absolute', bottom:10, width:'100%',height:'40%' , justifyContent:'space-around', alignItems:'center'}}>
-        <CountdownCircleTimer
-            size={100}
+          <CountdownCircleTimer
+            size={90}
             isPlaying
             duration={callDuration}
             colors={['#39ff07', '#F7B801', '#A30000']}
-            colorsTime={[180, 90, 0]}
+            colorsTime={[600, 300, 0]}
             onComplete={()=>{
               // stopMedia()
               setTimeout(()=>{
@@ -152,12 +160,13 @@ const HomeScreen = () => {
               }, 1000)
             }}
           >
-            {({ remainingTime }) => <Text style={{fontSize:20}}>
+            {({ remainingTime }) => <Text style={{fontSize:15}}>
               {new Date(remainingTime * 1000).toISOString().substring(14, 19)}
             </Text>}
           </CountdownCircleTimer>
+          {/* <Text>{myconn?.iceConnectionState}</Text> */}
           <View style={{flexDirection:'row',width:'100%', justifyContent:'center', alignItems:'center'}}>
-          <TouchableWithoutFeedback onPress={()=>{
+            <TouchableWithoutFeedback onPress={()=>{
             sendHangup()
           }}>
             <View style={{backgroundColor:'red', justifyContent:'center', alignItems:'center', width:60, height:60, borderRadius:50}}>

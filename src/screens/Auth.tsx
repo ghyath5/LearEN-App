@@ -1,14 +1,12 @@
 import React, {useEffect, useState} from 'react'
-import { Image, StyleSheet, TextInput, View, Button, Appearance} from 'react-native'
+import { Image, StyleSheet, TextInput, View, Button, Text, Linking} from 'react-native'
 // import {authService} from '../services/Auth'
-import CountryPicker, { Country, CountryCode, DARK_THEME, DEFAULT_THEME } from 'react-native-country-picker-modal'
+import CountryPicker, { Country, CountryCode} from 'react-native-country-picker-modal'
 import axios from 'axios'
 import { useAuth } from '../context/Auth'
 
 export default function Auth() {
-  const colorScheme = Appearance.getColorScheme();
   const {login} = useAuth()
-  const [loading, setLoading] = useState(false)
   const [name, setName] = useState('')
   const [country, setCountry] = useState<Country>()
   const [countryCode, setCountryCode] = useState<CountryCode>('LB')
@@ -30,6 +28,11 @@ export default function Auth() {
           setCountry(country)
           setCountryCode(country.cca2)
         }} withCountryNameButton/></View>
+      </View>
+      <View style={{marginTop: 15, width:'70%'}}>
+        <Text>Pressing ENTER mean you have read and accept <Text onPress={()=>{
+          Linking.openURL('https://learen.herokuapp.com')
+        }} style={{color: 'blue'}}>Terms & Conditions</Text></Text>
       </View>
       <View style={{marginTop:'4%'}}>
       <Button title={'Enter'} disabled={!countryCode || !name} onPress={()=>login({countryCode: countryCode!, name})}/>

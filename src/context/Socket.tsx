@@ -4,11 +4,14 @@ import { SERVER_URL } from '../constants';
 import { AuthContextData, useAuth } from './Auth';
 import {getUniqueId} from 'react-native-device-info';
 import { useWebRTC } from './RTC';
-import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert, Linking } from 'react-native';
+import AsyncStorage, { useAsyncStorage } from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
 import {  RTCSessionDescriptionType } from 'react-native-webrtc';
 import { useNotification } from './Notification';
+import { useNetInfo } from '@react-native-community/netinfo';
+import usePrevious from '../services/hooks';
+import { off, on } from '../services/Events';
 type InitlizeProps = {data: AuthContextData['session']}
 type SocketContextData = {
   search: (props: InitlizeProps)=>void
@@ -19,32 +22,77 @@ type SocketContextData = {
 const SocketContext = createContext<SocketContextData>({} as SocketContextData);
 const socket = io(SERVER_URL, {auth:{id: getUniqueId() } } )
 const SocketProvider: React.FC = ({children}) => {
+  const storage = useAsyncStorage('chats')
+  const {isInternetReachable} = useNetInfo()
+  const prevInternetStatus = usePrevious(isInternetReachable)
   const {setConnecting, connecting} = useNotification()
   const {session} = useAuth()
   // const netInfo = useNetInfo();
   const { searching, initializer, remoteStream, localStream, setInitializer, myconn, createOffer, setLocalDescription, reset, startMedia, partnerConnect, addIceCandidate,handleAnswer, stopMedia, partner, setSearching} = useWebRTC()
   const isConnected = useMemo(()=>(partner?.data && partner.id && remoteStream?.active), [partner, localStream, remoteStream])
   const search = async (props:InitlizeProps) => {
+    if(!socket.connected){
+      socket.connect()
+    }
     // reset()
     stopMedia()
     await startMedia()
     socket.emit('search', {...props, id: getUniqueId()})
   }
-  const hangUp = ()=>{
+  const chats = {
+    counts: async ()=>{
+      let chats = await storage.getItem()
+      return Number(chats ?? 0) ?? 0
+    },
+    inc: async function(){
+      const chats = await this.counts()
+      storage.setItem(String(chats+1))
+    },
+    reset: async ()=>{
+      await storage.setItem('0')
+    }
+  }
+  const showRate = ()=>{
+    Alert.alert(
+      'Are you happy with the app?',
+      'Rate us on google play',
+      [
+        {
+          text: 'Yes',
+          onPress: () => {
+            Linking.openURL('https://play.google.com/store/apps/details?id=com.learen.ghyath');
+          },
+        },
+        {
+          text: 'Remind me later',
+          onPress: () => {}
+        },
+      ]
+    );
+  }
+  const hangUp = async ()=>{
     socket.emit('hangup', {id: partner?.id})
+    setConnecting(false)
     reset()
+    if(await chats.counts() >= 4){
+      showRate()
+      chats.reset()
+    }
   }
   useEffect(()=>{
+    on('hangup', hangUp)
+    return ()=>{
+      off('hangup', hangUp)
+    }
+  }, [ partner, myconn ])
+  useEffect(()=>{
     myconn.onicecandidate = (event) => {      
-      if (event.candidate && partner?.id) {                
+      if (event.candidate && partner?.id && myconn.localDescription && myconn.remoteDescription) {                
         socket.emit('candidate', {candidate:event.candidate, id: partner.id})
       }
     };
   }, [partner?.id, myconn])
-  const connectionLost = () => {
-    reset()
-    Alert.alert('Connection lost.')
-  }
+  
   useEffect(()=>{
     socket.on('data', async ({me})=>{
       if(!me)return;
@@ -55,20 +103,14 @@ const SocketProvider: React.FC = ({children}) => {
       socket.off('data')
     }
   }, [myconn])
+
   useEffect(()=>{
-  //   socket.io.on("reconnect_attempt", () => {
-  //     console.log(session?.name,'reconnect_attempt');
-  //   });
     socket.on("connect_error", () => {
       socket.auth = {id: getUniqueId() }
       socket.connect();
     });
     return ()=>{
-      // socket.off('connect')
-      // socket.off('disconnect')
-      // socket.off('reconnect')
       socket.off('connect_error')
-      // socket.off('reconnect_attempt')
     }
   }, [partner?.id, myconn])
   // useEffect(()=>{
@@ -81,53 +123,51 @@ const SocketProvider: React.FC = ({children}) => {
   //   }
   // }, [myconn, partner])
   useEffect(()=>{
+    if(!prevInternetStatus && isInternetReachable && partner?.id){
+      console.log('restart server', myconn.signalingState);
+        
+      createOffer({iceRestart: true, offerToReceiveAudio:true, offerToReceiveVideo: true}).then((offer)=>{
+        socket.emit('calling', {offer, id: partner.id})
+      })
+      
+    }
+  }, [myconn, isInternetReachable, prevInternetStatus, partner?.id])
+  
+
+  useEffect(()=>{
     if(!partner?.id || !myconn)return;
     let mytimeout: string | number | NodeJS.Timeout | undefined;
     myconn.oniceconnectionstatechange = ()=>{
       clearTimeout(mytimeout)
-      console.log(partner?.data?.name, myconn.iceConnectionState, myconn.connectionState);
+      // console.log(partner?.data?.name, myconn.iceConnectionState, myconn.connectionState);
       if(myconn.iceConnectionState == 'checking'){
+        console.log('checking....');
         setConnecting(true)
-        console.log(myconn.signalingState);
         mytimeout = setTimeout(()=>{
-          console.log('rest');
-          
           createOffer({iceRestart: true, offerToReceiveAudio:true, offerToReceiveVideo: true}).then((offer)=>{
             socket.emit('calling', {offer, id: partner.id})
           })
         }, 4000)
-        
       }
-      if(myconn.iceConnectionState == 'connected'){
+      if(myconn.iceConnectionState == 'connected' || myconn.iceConnectionState == 'completed'){
         setConnecting(false)
-      }
-      if(partner?.id && (myconn.iceConnectionState == 'failed' || myconn.connectionState == 'failed')){
-        console.log('restart server');
-        
-        createOffer({iceRestart: true, offerToReceiveAudio:true, offerToReceiveVideo: true}).then((offer)=>{
-          socket.emit('calling', {offer, id: partner.id})
-        })
-        // reconnected()
       }
     }
     return ()=>{ }
   }, [myconn, partner?.id])
-  // useEffect(()=>{
-  //   socket.connect()
-  //   return ()=>{
 
-  //   }
-  // }, [netInfo.isConnected])
   useEffect(()=>{
     socket.on('disconnected already', ()=>{
       if(!connecting)return;
       reset()
-      Alert.alert("Your friend has left the call.")
+      Alert.alert("Your partner has already left the call.")
       setConnecting(false)
     })
   }, [connecting])
   useEffect(()=>{
     socket.on('hangup', ()=>{
+      Alert.alert("Your partner has left the call.")
+      setConnecting(false)
       reset()
     })
     return ()=>{
@@ -145,14 +185,13 @@ const SocketProvider: React.FC = ({children}) => {
           setConnecting(true)
           const parsedDetails = JSON.parse(parsedData.data||'{}')
           partnerConnect({data:parsedDetails, id: parsedData.id})
-          socket.emit('get my offer', {}, async (myoffer: RTCSessionDescriptionType)=>{            
-            if(!myoffer)return;
+          socket.emit('get my offer', {}, async (myoffer: RTCSessionDescriptionType)=>{
+            if(!myoffer)return setConnecting(false);
             await startMedia()
             await handleAnswer(myoffer)
             const answer = await myconn.createAnswer();
             await setLocalDescription(answer);
             socket.emit('answer', {id: parsedData?.id, answer})
-            // setConnecting(false)
           })
         }
       }catch(e){
@@ -165,31 +204,31 @@ const SocketProvider: React.FC = ({children}) => {
       messaging().unsubscribeFromTopic(`${getUniqueId()}-call-started`)
     }
   }, [myconn]);
+
   useEffect(()=>{
     socket.on('candidate', (candidate)=>{
-      if(!partner?.id && myconn.remoteDescription && myconn.localDescription && remoteStream) return;
+      if(!partner?.id || !myconn.remoteDescription || !myconn.localDescription || !remoteStream) return;
       addIceCandidate(candidate);
     })
     return ()=>{
       socket.off('candidate')
     }
   },[partner?.id, myconn,remoteStream])
-
+  
   useEffect(()=>{
-    socket.on('link', (data)=>{
+    socket.on('link', async (data)=>{
       setConnecting(true)
       partnerConnect(data)
+      chats.inc()
     })
     return ()=>{
       socket.off('link')
     }
   },[])
+
   useEffect(()=>{
     socket.on('set answer', (data)=>{
       if(!partner?.id || partner?.id != data.id)return;
-      // setConnecting(false)
-      console.log(myconn.signalingState, 'set anser');
-      
       handleAnswer(data.answer)
     })
     return ()=>{
@@ -199,7 +238,6 @@ const SocketProvider: React.FC = ({children}) => {
 
   useEffect(()=>{
     socket.on('call', async (data)=>{
-      // if(!searching)return;
       await handleAnswer(data.offer)
       const answer = await myconn.createAnswer();
       await setLocalDescription(answer);
@@ -209,11 +247,10 @@ const SocketProvider: React.FC = ({children}) => {
     return ()=>{
       socket.off('call')
     }
-  },[myconn, searching])
+  },[myconn])
   
   useEffect(()=>{
     socket.on('call this', async (data)=>{
-      setInitializer(true)
       const offer = await createOffer({ offerToReceiveAudio:true, offerToReceiveVideo: true})
       socket.emit('calling', {offer, id: data.id})
     })
@@ -225,7 +262,10 @@ const SocketProvider: React.FC = ({children}) => {
     if(!socket.connected){
       socket.connect()
     }
-  }, [myconn])
+    return ()=>{
+      socket.disconnect()
+    }
+  }, [])
   const value = { search, hangUp}
   return (
     <SocketContext.Provider value={value}>

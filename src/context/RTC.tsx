@@ -40,8 +40,32 @@ type WebRTCContextData = {
 const WebRTCContext = createContext<WebRTCContextData>({} as WebRTCContextData);
 const RTC_PEER = () =>{
   return new RTCPeerConnection({
-    iceTransportPolicy:'all',
+    // iceTransportPolicy:'all',
     iceServers: [
+      {
+        username: "6im40d7F6NYqlXEWP1tkuG-D3pQsbwgaxnUZu9UAlhRWY3mWcE29mNwwWdSqrosaAAAAAGLKlYhnaGF5NmE=",
+        credential: "f56f17f2-002e-11ed-bb4d-0242ac120004",
+        urls: [
+            "turn:fr-turn1.xirsys.com:80?transport=udp",
+            "turn:fr-turn1.xirsys.com:3478?transport=udp",
+            "turn:fr-turn1.xirsys.com:80?transport=tcp",
+            "turn:fr-turn1.xirsys.com:3478?transport=tcp",
+            "turns:fr-turn1.xirsys.com:443?transport=tcp",
+            "turns:fr-turn1.xirsys.com:5349?transport=tcp"
+        ]
+     },  
+      {
+        username: "FfKfp2HESRuWUh4BVBMNtnAH0S5uv1SrEOwtuMMuDgJVp6F16e4cp1nuUKmf0YpqAAAAAGLJTp5naHlhNg==",
+        credential: "1a6ec2d2-ff6c-11ec-b1d2-0242ac140004",
+        urls: [
+            "turn:eu-turn1.xirsys.com:80?transport=udp",
+            "turn:eu-turn1.xirsys.com:3478?transport=udp",
+            "turn:eu-turn1.xirsys.com:80?transport=tcp",
+            "turn:eu-turn1.xirsys.com:3478?transport=tcp",
+            "turns:eu-turn1.xirsys.com:443?transport=tcp",
+            "turns:eu-turn1.xirsys.com:5349?transport=tcp"
+        ]
+      },
       {
         username: "nwNMneiGkZ_kydK2jl9YI-CPrZI9CuIDDSPCpOWgkCT81ejg4VKNTpl3dHYBKcBHAAAAAGLFxS5naHlhdGg=",
         credential: "6b89ae16-fd50-11ec-99aa-0242ac120004",
@@ -54,6 +78,18 @@ const RTC_PEER = () =>{
             "turns:fr-turn1.xirsys.com:5349?transport=tcp"
         ]
      },
+     {
+      username: "pPo-6s0t6lZIca5mmoBXnlIWdbg6cmfERfz-nO-7DzjQkgr6gJTf9a0nuOGzKaBxAAAAAGLJpwZnaGFl",
+      credential: "cc52c6fe-ffa0-11ec-a4bf-0242ac140004",
+      urls: [
+          "turn:eu-turn2.xirsys.com:80?transport=udp",
+          "turn:eu-turn2.xirsys.com:3478?transport=udp",
+          "turn:eu-turn2.xirsys.com:80?transport=tcp",
+          "turn:eu-turn2.xirsys.com:3478?transport=tcp",
+          "turns:eu-turn2.xirsys.com:443?transport=tcp",
+          "turns:eu-turn2.xirsys.com:5349?transport=tcp"
+      ]
+      },
       {
         urls: [
           'stun:stun.l.google.com:19302',
