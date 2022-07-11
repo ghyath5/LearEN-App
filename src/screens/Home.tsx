@@ -18,7 +18,7 @@ const HomeScreen = () => {
   const colorScheme = Appearance.getColorScheme();
   const {isInternetReachable:network} = useNetInfo()
   const {width, height} = Dimensions.get('screen')
-  const {localStream, partner, remoteStream, videoToggle, myconn, mediaOptions,setSearching, searching} = useWebRTC()
+  const {iceConnectionState, localStream, partner, remoteStream, videoToggle,reset, myconn, mediaOptions,setSearching, searching} = useWebRTC()
   const {search:sendSearch, hangUp:sendHangup} = useSocket()
   const [callDuration, setCallDuration] = useState(600)
   const [searchDuration, setSearchDuration] = useState(300)
@@ -71,14 +71,14 @@ const HomeScreen = () => {
     setSearchDuration(300)
   }, [partner?.id])
   const connectionState = useMemo(()=>{
-    if(myconn?.iceConnectionState == 'completed' || myconn?.iceConnectionState == 'connected'){
+    if(iceConnectionState == 'completed' || iceConnectionState == 'connected'){
       return 'connected'
     }
-    if(myconn?.iceConnectionState == 'checking'){
+    if(iceConnectionState == 'checking'){
       return 'checking'
     }
-    return myconn.iceConnectionState
-  }, [myconn, myconn.iceConnectionState])
+    return iceConnectionState
+  }, [myconn, iceConnectionState])
   return (
     <View style={{flex:1, backgroundColor: colorScheme == 'dark'?'black':'white'}}>
       {isConnected ?
@@ -131,6 +131,7 @@ const HomeScreen = () => {
               }}>
               <Text style={{padding:10}} onPress={()=>{
                 setSearching(false)
+                reset()
                 sendHangup()
               }}>Cancel</Text>
               </TouchableWithoutFeedback>
@@ -149,15 +150,14 @@ const HomeScreen = () => {
         <View style={{ position:'absolute', bottom:10, width:'100%',height:'40%' , justifyContent:'space-around', alignItems:'center'}}>
           <CountdownCircleTimer
             size={90}
-            isPlaying
+            isPlaying={Boolean(connectionState == 'connected' && network)}
             duration={callDuration}
             colors={['#39ff07', '#F7B801', '#A30000']}
             colorsTime={[600, 300, 0]}
             onComplete={()=>{
-              // stopMedia()
               setTimeout(()=>{
                 sendHangup()
-              }, 1000)
+              }, 500)
             }}
           >
             {({ remainingTime }) => <Text style={{fontSize:15}}>
@@ -167,11 +167,11 @@ const HomeScreen = () => {
           {/* <Text>{myconn?.iceConnectionState}</Text> */}
           <View style={{flexDirection:'row',width:'100%', justifyContent:'center', alignItems:'center'}}>
             <TouchableWithoutFeedback onPress={()=>{
-            sendHangup()
-          }}>
-            <View style={{backgroundColor:'red', justifyContent:'center', alignItems:'center', width:60, height:60, borderRadius:50}}>
-                <Icon size={30} name={'call-outline'} style={{color:'white'}} />
-            </View>
+              sendHangup()
+            }}>
+              <View style={{backgroundColor:'red', justifyContent:'center', alignItems:'center', width:60, height:60, borderRadius:50}}>
+                  <Icon size={30} name={'call-outline'} style={{color:'white'}} />
+              </View>
             </TouchableWithoutFeedback>
             <View style={{right:15,backgroundColor:'white', position:'absolute', borderColor:'black', borderWidth:0.5, justifyContent:'center', alignItems:'center', width:40, height:40, borderRadius:50}}>
                 <Icon size={30} name={micMuted?'mic-off-outline':'mic-outline'} style={{color:'black'}} onPress={()=>{
@@ -179,7 +179,9 @@ const HomeScreen = () => {
                 }}/>
             </View>
           </View>
+          
         </View>
+        {isConnected && connectionState != 'connected' ? <Text style={{width:'100%', position:'absolute', bottom:0, padding:5, backgroundColor:'orange', textAlign:'center',color:'white'}}>Connecting...</Text>:null}
         </>
         }
     </View>

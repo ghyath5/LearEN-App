@@ -9,7 +9,7 @@ import { globalHangUp } from '../services/Events';
 export const Connecting = ({}) => {
   const {partner} = useWebRTC()
   const [countryName, setCountryName] = useState('')
-  const [timeOut, setTimeOut] = useState(60)
+  const [timeOut, setTimeOut] = useState(20)
   const timeoutInterval = useRef<any>()
   const cutText = (text:string, len=18)=>{
     return ((text).length > len) ?  (((text).substring(0,len-3)) + '...') : text

@@ -11,7 +11,7 @@ import {
   RTCOfferOptions,
 } from 'react-native-webrtc';
 // import { socketEvent } from '../services/Events';
-
+export type IceConnectionStateType = 'checking' | 'completed' | 'connected' | 'disconnected' | 'new' | 'closed' | 'failed'
 type WebRTCContextData = {
   myconn: RTCPeerConnection,
   initializer: boolean,
@@ -34,14 +34,22 @@ type WebRTCContextData = {
   partner:{data?:{countryCode?: string, name?: string}, id?: string} | undefined
   setSearching: React.Dispatch<React.SetStateAction<boolean>>,
   searching: boolean
+  iceConnectionState: IceConnectionStateType
 }
 //Create the WebRTC Context with the data type specified
 //and a empty object
 const WebRTCContext = createContext<WebRTCContextData>({} as WebRTCContextData);
 const RTC_PEER = () =>{
   return new RTCPeerConnection({
-    // iceTransportPolicy:'all',
+    // iceTransportPolicy:'relay',
     iceServers: [
+      
+      {
+        urls: [
+          'stun:stun.l.google.com:19302',
+          'stun:stun2.l.google.com:19302'
+        ], 
+      },
       {
         username: "6im40d7F6NYqlXEWP1tkuG-D3pQsbwgaxnUZu9UAlhRWY3mWcE29mNwwWdSqrosaAAAAAGLKlYhnaGF5NmE=",
         credential: "f56f17f2-002e-11ed-bb4d-0242ac120004",
@@ -90,12 +98,6 @@ const RTC_PEER = () =>{
           "turns:eu-turn2.xirsys.com:5349?transport=tcp"
       ]
       },
-      {
-        urls: [
-          'stun:stun.l.google.com:19302',
-          'stun:stun2.l.google.com:19302'
-        ], 
-      }
     ],
   })
 }
@@ -108,6 +110,7 @@ const WebRTCProvider: React.FC = ({children}) => {
   const [localStream, setLocalStream] = useState<MediaStream>()
   const [remoteStream, setRemoteStream] = useState<MediaStream>()
   const [mediaOptions, setMediaOptions] = useState({ audio: true, video: false })
+  const [iceConnectionState, setIceConnectionState] = useState<IceConnectionStateType>('new')
   const reconnected = () =>{
     setReconnectionTimes((reconnections)=>reconnections+1)
   }
@@ -122,16 +125,20 @@ const WebRTCProvider: React.FC = ({children}) => {
       setMediaOptions((op)=>({...op, video: camera == 'ON'}))
     })
   }, [])
+  useEffect(()=>{
+    myconn.oniceconnectionstatechange = ()=> {
+      setIceConnectionState((myconn as any)?.iceConnectionState ?? 'new')
+    }
+  }, [myconn])
   const reset = () => {
-    let mynewConn = RTC_PEER()
     setReconnectionTimes(0)
     myconn.close()
     setLocalStream(undefined)
     setRemoteStream(undefined)
     setSearching(false)
     setPartner(undefined)
-    setMyconn(mynewConn)
-    return mynewConn
+    setMyconn(RTC_PEER())
+    // return RTC_PEER()
     // socketEvent.emit('call-reset')
   }
   const startMedia = async () => {
@@ -180,7 +187,7 @@ const WebRTCProvider: React.FC = ({children}) => {
   return (
     //This component will be used to encapsulate the whole App,
     //so all components will have access to the Context
-    <WebRTCContext.Provider value={{setSearching, searching,mediaOptions, videoToggle, reconnected, reconnectionTimes, initializer, setInitializer, myconn, handleAnswer, createOffer, startMedia, stopMedia, reset, partnerConnect, partnerDisconnect, addIceCandidate, setLocalDescription , localStream, remoteStream, partner}}>
+    <WebRTCContext.Provider value={{iceConnectionState, setSearching, searching,mediaOptions, videoToggle, reconnected, reconnectionTimes, initializer, setInitializer, myconn, handleAnswer, createOffer, startMedia, stopMedia, reset, partnerConnect, partnerDisconnect, addIceCandidate, setLocalDescription , localStream, remoteStream, partner}}>
       {children}
     </WebRTCContext.Provider>
   );

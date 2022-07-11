@@ -30,7 +30,7 @@ export default function Auth() {
         }} withCountryNameButton/></View>
       </View>
       <View style={{marginTop: 15, width:'70%'}}>
-        <Text>Pressing ENTER mean you have read and accept <Text onPress={()=>{
+        <Text style={{color: 'black'}}>Pressing ENTER mean you have read and accept <Text onPress={()=>{
           Linking.openURL('https://learen.herokuapp.com')
         }} style={{color: 'blue'}}>Terms & Conditions</Text></Text>
       </View>
