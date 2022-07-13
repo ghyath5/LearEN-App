@@ -15,7 +15,7 @@ const UpdateManagerProvider: React.FC = ({children}) => {
       if(state == 'active'){
         setChecking(true)
         axios.get(`${SERVER_URL}/app-version`).then(({data}:{data:any})=>{
-          if(data.version != APP_VERSION){
+          if(Number(APP_VERSION) < Number(data.version) ){
             Alert.alert("Update available", "Please update this app before continue.", [
               {
                 text:"Update",

@@ -203,8 +203,10 @@ const SocketProvider: React.FC = ({children}) => {
     // //  }, 500)
     // })
     messaging().subscribeToTopic(`${getUniqueId()}-call-started`)
+    messaging().subscribeToTopic('online-users')
     return ()=>{
       messaging().unsubscribeFromTopic(`${getUniqueId()}-call-started`)
+      messaging().unsubscribeFromTopic('online-users')
     }
   }, [myconn]);
 
