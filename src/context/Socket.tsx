@@ -34,8 +34,6 @@ const SocketProvider: React.FC = ({children}) => {
     if(!socket.connected){
       socket.connect()
     }
-    // reset()
-    stopMedia()
     await startMedia()
     socket.emit('search', {...props, id: getUniqueId()})
   }
@@ -141,11 +139,13 @@ const SocketProvider: React.FC = ({children}) => {
   }
   
   useEffect(()=>{
-    if(!partner?.id || !myconn)return clearTimeout(reconnecTimeout.current);
-    // console.log(iceConnectionState);
-    clearTimeout(reconnecTimeout.current)
+    clearTimeout(reconnecTimeout.current);
+    console.log(iceConnectionState);
+    if(!partner?.id || !myconn)return;
     if(iceConnectionState == 'failed'){
       reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (5 - 1 + 1) + 1) * 1000)
+    }else if (iceConnectionState == 'checking'){
+      reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (15 - 1 + 4) + 4) * 1000)
     }
     return ()=>{ }
   }, [myconn, iceConnectionState, partner?.id])

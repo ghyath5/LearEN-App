@@ -51,6 +51,18 @@ const RTC_PEER = () =>{
         ], 
       },
       {
+        username: "mcfuXh4icW5Q6Uf-dbFcyXbDhSi1YW2DhQkMDFskvw1LB7Kxh0G7y9nHes2bQdaLAAAAAGLSoTBtYWxpZQ==",
+        credential: "9bfe26ec-04fa-11ed-8d53-0242ac120004",
+        urls: [
+            "turn:fr-turn1.xirsys.com:80?transport=udp",
+            "turn:fr-turn1.xirsys.com:3478?transport=udp",
+            "turn:fr-turn1.xirsys.com:80?transport=tcp",
+            "turn:fr-turn1.xirsys.com:3478?transport=tcp",
+            "turns:fr-turn1.xirsys.com:443?transport=tcp",
+            "turns:fr-turn1.xirsys.com:5349?transport=tcp"
+        ]
+      },
+      {
         username: "6im40d7F6NYqlXEWP1tkuG-D3pQsbwgaxnUZu9UAlhRWY3mWcE29mNwwWdSqrosaAAAAAGLKlYhnaGF5NmE=",
         credential: "f56f17f2-002e-11ed-bb4d-0242ac120004",
         urls: [
