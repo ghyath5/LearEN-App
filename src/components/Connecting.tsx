@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {View, Text, Dimensions, TouchableWithoutFeedback} from 'react-native';
+import {View, Text, Dimensions, TouchableWithoutFeedback, Alert} from 'react-native';
 import { CountryCode, Flag } from 'react-native-country-picker-modal';
 import { getCountryNameAsync } from 'react-native-country-picker-modal/lib/CountryService';
 import { useWebRTC } from '../context/RTC';
@@ -9,7 +9,7 @@ import { globalHangUp } from '../services/Events';
 export const Connecting = ({}) => {
   const {partner} = useWebRTC()
   const [countryName, setCountryName] = useState('')
-  const [timeOut, setTimeOut] = useState(40)
+  const [timeOut, setTimeOut] = useState(30)
   const timeoutInterval = useRef<any>()
   const cutText = (text:string, len=18)=>{
     return ((text).length > len) ?  (((text).substring(0,len-3)) + '...') : text
@@ -33,6 +33,7 @@ export const Connecting = ({}) => {
     if(timeOut<=1){
       clearInterval(timeoutInterval.current)
       globalHangUp()
+      Alert.alert("Your partner has disconnected")
     }
   }, [timeOut])
   

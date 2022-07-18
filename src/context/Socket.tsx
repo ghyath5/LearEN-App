@@ -19,7 +19,7 @@ type SocketContextData = {
 //Create the Socket Context with the data type specified
 //and a empty object
 const SocketContext = createContext<SocketContextData>({} as SocketContextData);
-const socket = io(SERVER_URL, {auth:{id: getUniqueId() } } )
+const socket = io(SERVER_URL, {auth:{id: getUniqueId() },autoConnect:true, transports:['websocket'] } )
 const SocketProvider: React.FC = ({children}) => {
   const storage = useAsyncStorage('chats')
   const {isInternetReachable} = useNetInfo()
@@ -140,12 +140,11 @@ const SocketProvider: React.FC = ({children}) => {
   
   useEffect(()=>{
     clearTimeout(reconnecTimeout.current);
-    console.log(iceConnectionState);
     if(!partner?.id || !myconn)return;
     if(iceConnectionState == 'failed'){
       reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (5 - 1 + 1) + 1) * 1000)
     }else if (iceConnectionState == 'checking'){
-      reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (15 - 1 + 4) + 4) * 1000)
+      reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (8 - 1 + 4) + 4) * 1000)
     }
     return ()=>{ }
   }, [myconn, iceConnectionState, partner?.id])
