@@ -9,7 +9,7 @@ import { globalHangUp } from '../services/Events';
 export const Connecting = ({}) => {
   const {partner} = useWebRTC()
   const [countryName, setCountryName] = useState('')
-  const [timeOut, setTimeOut] = useState(30)
+  const [timeOut, setTimeOut] = useState(40)
   const timeoutInterval = useRef<any>()
   const cutText = (text:string, len=18)=>{
     return ((text).length > len) ?  (((text).substring(0,len-3)) + '...') : text
@@ -31,9 +31,9 @@ export const Connecting = ({}) => {
   }, [])
   useEffect(()=>{    
     if(timeOut<=1){
+      Alert.alert("Your partner has disconnected")
       clearInterval(timeoutInterval.current)
       globalHangUp()
-      Alert.alert("Your partner has disconnected")
     }
   }, [timeOut])
   
