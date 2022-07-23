@@ -20,7 +20,7 @@ const HomeScreen = () => {
   const colorScheme = Appearance.getColorScheme();
   const {isInternetReachable:network} = useNetInfo()
   const {width, height} = Dimensions.get('screen')
-  const {iceConnectionState, localStream, partner, remoteStream, videoToggle,reset, myconn, mediaOptions,setSearching, searching} = useWebRTC()
+  const {iceConnectionState, loading, localStream, partner, remoteStream, videoToggle,reset, myconn, mediaOptions,setSearching, searching} = useWebRTC()
   const {search:sendSearch, hangUp:sendHangup} = useSocket()
   const [searchDuration, setSearchDuration] = useState(300)
   const [micMuted, setMicMuted] = useState(false)
@@ -127,16 +127,15 @@ const HomeScreen = () => {
             {!searching?
             <View style={{flex:1, justifyContent:'space-around'}}>
             <TouchableWithoutFeedback style={{justifyContent:'center', alignItems:'center'}} onPress={async ()=>{
-              if(!network || searching)return;
+              if(!network || searching || loading)return;
               setMicMuted(false)
               setSearching(true)
               sendSearch({data:session})
             }}>
-              <View style={{backgroundColor:'#07b2ff',marginBottom:10, justifyContent:'center', alignItems:'center', padding:10, borderRadius:5}}>
+              <View style={{backgroundColor:'#07b2ff',marginBottom:10, minWidth:100, justifyContent:'center', alignItems:'center', padding:10, borderRadius:5}}>
                 {/* <Icon size={30} name={'search-outline'} style={{color:'white'}} /> */}
                 
-                <Text style={{fontSize:18, color: 'white', marginBottom:5}}>Find a Speaker</Text>
-                <MaterialIcon name='cast-audio-variant' size={25} color={'white'}/>
+                {loading ?<ActivityIndicator size={20} /> :<><Text style={{fontSize:18, color: 'white', marginBottom:5}}>Find a Speaker</Text><MaterialIcon name='cast-audio-variant' size={25} color={'white'}/></>}
               </View>
               {/* <View style={{backgroundColor:'#07b2ff',flexDirection:'row', justifyContent:'center', alignItems:'center', padding:10, borderRadius:5}}>
                 

@@ -1,16 +1,17 @@
-import React, {createContext, useContext, useEffect, useMemo, useRef} from 'react';
+import React, {createContext, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import { io } from 'socket.io-client';
 import { SERVER_URL } from '../constants';
 import { AuthContextData, useAuth } from './Auth';
 import {getUniqueId} from 'react-native-device-info';
 import { useWebRTC } from './RTC';
-import { Alert, Linking } from 'react-native';
+import { Alert, AppState, Linking } from 'react-native';
 import AsyncStorage, { useAsyncStorage } from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
 import { useNotification } from './Notification';
 import { useNetInfo } from '@react-native-community/netinfo';
 import usePrevious from '../services/hooks';
 import { off, on } from '../services/Events';
+import { RTCSessionDescriptionType } from 'react-native-webrtc';
 type InitlizeProps = {data: AuthContextData['session']}
 type SocketContextData = {
   search: (props: InitlizeProps)=>void
@@ -19,17 +20,28 @@ type SocketContextData = {
 //Create the Socket Context with the data type specified
 //and a empty object
 const SocketContext = createContext<SocketContextData>({} as SocketContextData);
-const socket = io(SERVER_URL, {auth:{id: getUniqueId() },autoConnect:true, transports:['websocket'] } )
+const socket = io(SERVER_URL, {auth:{id: getUniqueId() },autoConnect:true, transports:['websocket'], reconnectionDelay:500 } )
 const SocketProvider: React.FC = ({children}) => {
   const storage = useAsyncStorage('chats')
   const {isInternetReachable} = useNetInfo()
   const prevInternetStatus = usePrevious(isInternetReachable)
   const {setConnecting, connecting} = useNotification()
   const reconnecTimeout = useRef<string | number | NodeJS.Timeout | undefined>()
-  const {session} = useAuth()
+  // const {session} = useAuth()
   // const netInfo = useNetInfo();
-  const {reconnected,reconnectionTimes, iceConnectionState, remoteStream, localStream, setInitializer, myconn, createOffer, setLocalDescription, reset, startMedia, partnerConnect, addIceCandidate,handleAnswer, stopMedia, partner, setSearching} = useWebRTC()
+  const {setLoading, initializer,reconnected,reconnectionTimes, iceConnectionState, remoteStream, localStream, setInitializer, myconn, createOffer, setLocalDescription, reset, startMedia, partnerConnect, addIceCandidate,handleAnswer, stopMedia, partner, setSearching} = useWebRTC()
   const isConnected = useMemo(()=>(partner?.data && partner.id && remoteStream?.active), [partner, localStream, remoteStream])
+  
+  useEffect(()=>{
+    const subs = AppState.addEventListener('change', (state)=>{
+      if(state == 'active' && !socket.connected){
+        socket.connect()
+      }   
+    })
+    return ( )=>{
+      subs.remove()
+    }
+  }, [])
   const search = async (props:InitlizeProps) => {
     if(!socket.connected){
       socket.connect()
@@ -121,33 +133,55 @@ const SocketProvider: React.FC = ({children}) => {
   //   }
   // }, [myconn, partner])
   useEffect(()=>{
-    if(!prevInternetStatus && isInternetReachable && partner?.id && !['completed','connected'].includes(iceConnectionState) ){        
+    if(!prevInternetStatus && isInternetReachable && partner?.id && !['completed','connected'].includes(iceConnectionState) ){ 
+      console.log('restart server from connectivity');    
+      socket.connect()   
       restart(partner.id)
     }
-  }, [myconn, isInternetReachable, prevInternetStatus, partner?.id])
+  }, [myconn, isInternetReachable, prevInternetStatus, partner?.id, initializer, reconnectionTimes, iceConnectionState])
   
   const restart = (id:string)=>{
-    // console.log('trying restart server');
-    // console.log(reconnectionTimes);
-    
-    if(!id || reconnectionTimes >= 3)return reset();
+    if(!id){
+      Alert.alert("Your partner has left the call.")
+      return reset();
+    }
+    // console.log('trying restart server', reconnectionTimes);
+
+    if(reconnectionTimes >= 10){
+      Alert.alert("Failed to reconnect.")
+      return reset();
+    }
+    if(!initializer && reconnectionTimes <= 5){
+      reconnected(reconnectionTimes+1)
+      return console.log("not me reconnect");
+    }
     // console.log('restarting server');
-    reconnected()
-    createOffer({iceRestart:true, offerToReceiveAudio:true, offerToReceiveVideo: true,}).then((offer)=>{
+    reconnected(reconnectionTimes+1)
+    createOffer({iceRestart:true, offerToReceiveAudio:true, offerToReceiveVideo: true,}).then(async (offer)=>{
+      await startMedia()
       socket.emit('calling', {offer, id})
     })
+    
   }
-  
+  // useEffect(()=>{
+  //   setTimeout(()=>{
+  //     setReconnectedBefore(false)
+  //   }, 4000)
+  // }, [reconnectedBefore])
   useEffect(()=>{
     clearTimeout(reconnecTimeout.current);
     if(!partner?.id || !myconn)return;
+    // console.log(iceConnectionState);
+    if(iceConnectionState == 'completed' || iceConnectionState == 'connected'){
+      reconnected(0)
+    }
     if(iceConnectionState == 'failed'){
-      reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (5 - 1 + 1) + 1) * 1000)
+      reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (5 - 1 + 2) + 2) * 1000 )
     }else if (iceConnectionState == 'checking'){
-      reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (8 - 1 + 4) + 4) * 1000)
+      reconnecTimeout.current = setTimeout(()=>restart(partner.id!), Math.floor(Math.random() * (4 - 1 + 2) + 2) * 1000)
     }
     return ()=>{ }
-  }, [myconn, iceConnectionState, partner?.id])
+  }, [myconn, iceConnectionState, partner?.id, initializer, reconnectionTimes])
 
 
   useEffect(()=>{
@@ -178,29 +212,38 @@ const SocketProvider: React.FC = ({children}) => {
   },[myconn, partner])
 
   useEffect(() => {
-    // AsyncStorage.getItem('notify-data').then(async (data)=>{
-    // //  setTimeout( async ()=>{
-    //   try{
-    //     await AsyncStorage.removeItem('notify-data')
-    //     const parsedData = JSON.parse(data||'{}')        
-    //     if(parsedData?.id && !isConnected){
-    //       // setConnecting(true)
-    //       const parsedDetails = JSON.parse(parsedData.data||'{}')
-    //       partnerConnect({data:parsedDetails, id: parsedData.id})
-    //       socket.emit('get my offer', {}, async (myoffer: RTCSessionDescriptionType)=>{
-    //         if(!myoffer)return ;
-    //         await startMedia()
-    //         await handleAnswer(myoffer)
-    //         const answer = await myconn.createAnswer();
-    //         await setLocalDescription(answer);
-    //         socket.emit('answer', {id: parsedData?.id, answer})
-    //       })
-    //     }
-    //   }catch(e){
-    //     console.log(e);
-    //   }
-    // //  }, 500)
-    // })
+    setLoading(true)
+    AsyncStorage.getItem('notify-data').then(async (data)=>{
+    //  setTimeout( async ()=>{
+      try{
+        AsyncStorage.removeItem('notify-data')
+        const parsedData = JSON.parse(data||'{}')        
+        if(parsedData?.id && !isConnected){
+          const parsedDetails = JSON.parse(parsedData.data||'{}')
+          partnerConnect({data:parsedDetails, id: parsedData.id})
+          socket.emit('get my offer', {}, async (myoffer: RTCSessionDescriptionType)=>{
+            setLoading(false)
+            if(!myoffer)return ;
+            await startMedia()
+            await handleAnswer(myoffer)
+            const answer = await myconn.createAnswer();
+            await setLocalDescription(answer);
+            socket.emit('answer', {id: parsedData?.id, answer}, (isPartnerStillConnected:boolean)=>{
+              if(!isPartnerStillConnected){
+                Alert.alert("Your partner has left the call.")
+                reset()
+              }
+            })
+          })
+        }else{
+          setLoading(false)
+        }
+      }catch(e){
+        setLoading(false)
+        console.log(e);
+      }
+    //  }, 500)
+    })
     messaging().subscribeToTopic(`${getUniqueId()}-call-started`)
     messaging().subscribeToTopic('online-users')
     return ()=>{
@@ -209,6 +252,12 @@ const SocketProvider: React.FC = ({children}) => {
     }
   }, [myconn]);
 
+  useEffect(()=>{
+    socket.on('no longer connected', ()=>{
+      reset()
+      Alert.alert("Your partner has left the call.")
+    })
+  }, [myconn])
   useEffect(()=>{
     socket.on('candidate', (candidate)=>{
       if(!partner?.id || !myconn.remoteDescription || !myconn.localDescription || !remoteStream) return;
@@ -233,7 +282,9 @@ const SocketProvider: React.FC = ({children}) => {
 
   useEffect(()=>{
     socket.on('set answer', (data)=>{
-      if(!partner?.id || partner?.id != data.id)return;
+      if(!partner?.id || partner?.id != data.id){
+        return socket.emit('no longer connected', {id: data.id})
+      };
       handleAnswer(data.answer)
     })
     return ()=>{
@@ -243,10 +294,13 @@ const SocketProvider: React.FC = ({children}) => {
 
   useEffect(()=>{
     socket.on('call', async (data)=>{
-      await handleAnswer(data.offer)
-      const answer = await myconn.createAnswer();
-      await setLocalDescription(answer);
-      socket.emit('answer', {id: data.id, answer})
+      setInitializer(false)
+      try{
+        await handleAnswer(data.offer)
+        const answer = await myconn.createAnswer();
+        await setLocalDescription(answer);
+        socket.emit('answer', {id: data.id, answer}, ()=>{})
+      }catch(e){ }
     })
     return ()=>{
       socket.off('call')
@@ -255,6 +309,7 @@ const SocketProvider: React.FC = ({children}) => {
   
   useEffect(()=>{
     socket.on('call this', async (data)=>{
+      setInitializer(true)
       const offer = await createOffer({ offerToReceiveAudio:true, offerToReceiveVideo: true,})
       socket.emit('calling', {offer, id: data.id})
     })
@@ -263,11 +318,9 @@ const SocketProvider: React.FC = ({children}) => {
     }
   }, [myconn])
   useEffect(()=>{
-    if(!socket.connected){
-      socket.connect()
-    }
+    socket.connect()
     return ()=>{
-      socket.disconnect()
+      // socket.disconnect()
     }
   }, [isInternetReachable])
   const value = { search, hangUp}

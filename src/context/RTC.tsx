@@ -22,18 +22,21 @@ type WebRTCContextData = {
   videoToggle:()=>void, 
   stopMedia:()=>void, 
   reset:()=>void, 
+  restartNewConnection:()=>void, 
   partnerConnect:(partnerData:any)=>void,
+  setLoading:(is:boolean)=>void,
   partnerDisconnect:()=>void,
   setLocalDescription:(offer: RTCSessionDescriptionType) =>Promise<void>,
   addIceCandidate:(candidate:RTCIceCandidateType)=>void,
   localStream: MediaStream| undefined,
   remoteStream: MediaStream| undefined,
   reconnectionTimes: number,
-  reconnected:()=>void, 
+  reconnected:(times: number)=>void, 
   mediaOptions: { audio: boolean, video: boolean },
   partner:{data?:{countryCode?: string, name?: string}, id?: string} | undefined
   setSearching: React.Dispatch<React.SetStateAction<boolean>>,
   searching: boolean
+  loading: boolean
   iceConnectionState: IceConnectionStateType
 }
 //Create the WebRTC Context with the data type specified
@@ -114,6 +117,7 @@ const RTC_PEER = () =>{
   })
 }
 const WebRTCProvider: React.FC = ({children}) => {
+  const [loading, setLoading] = useState(true)
   const [initializer, setInitializer] = useState(false)
   const [reconnectionTimes, setReconnectionTimes] = useState(0)
   const [partner, setPartner] = useState<{data?:{countryCode?: string, name?: string}, id?: string}>()
@@ -123,8 +127,8 @@ const WebRTCProvider: React.FC = ({children}) => {
   const [remoteStream, setRemoteStream] = useState<MediaStream>()
   const [mediaOptions, setMediaOptions] = useState({ audio: true, video: false })
   const [iceConnectionState, setIceConnectionState] = useState<IceConnectionStateType>('new')
-  const reconnected = () =>{
-    setReconnectionTimes((reconnections)=>reconnections+1)
+  const reconnected = (times:number) =>{
+    setReconnectionTimes(times)
   }
   const videoToggle = () =>{
     setMediaOptions ((op)=>{
@@ -153,6 +157,12 @@ const WebRTCProvider: React.FC = ({children}) => {
     // return RTC_PEER()
     // socketEvent.emit('call-reset')
   }
+  const restartNewConnection = ()=>{
+    setReconnectionTimes(0)
+    myconn.close()
+    setSearching(false)
+    setMyconn(RTC_PEER())
+  }
   const startMedia = async () => {
     let camera = await AsyncStorage.getItem('camera')
     const media = await mediaDevices.getUserMedia({...mediaOptions, video: camera == 'ON'})
@@ -160,6 +170,10 @@ const WebRTCProvider: React.FC = ({children}) => {
     myconn.addStream(media)
     return media;
   }
+  // useEffect(()=>{
+  //   if(iceConnectionState == 'connected' || iceConnectionState == 'completed')return;
+  //   startMedia()
+  // }, [myconn, iceConnectionState])
   const stopMedia = async () => {
     localStream?.release()
   }
@@ -199,7 +213,7 @@ const WebRTCProvider: React.FC = ({children}) => {
   return (
     //This component will be used to encapsulate the whole App,
     //so all components will have access to the Context
-    <WebRTCContext.Provider value={{iceConnectionState, setSearching, searching,mediaOptions, videoToggle, reconnected, reconnectionTimes, initializer, setInitializer, myconn, handleAnswer, createOffer, startMedia, stopMedia, reset, partnerConnect, partnerDisconnect, addIceCandidate, setLocalDescription , localStream, remoteStream, partner}}>
+    <WebRTCContext.Provider value={{setLoading, loading, restartNewConnection, iceConnectionState, setSearching, searching,mediaOptions, videoToggle, reconnected, reconnectionTimes, initializer, setInitializer, myconn, handleAnswer, createOffer, startMedia, stopMedia, reset, partnerConnect, partnerDisconnect, addIceCandidate, setLocalDescription , localStream, remoteStream, partner}}>
       {children}
     </WebRTCContext.Provider>
   );
