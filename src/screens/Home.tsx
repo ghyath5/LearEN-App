@@ -86,8 +86,8 @@ const HomeScreen = () => {
   return (
     <View style={{flex:1, height:'100%', backgroundColor: colorScheme == 'dark'?'black':'white'}}>
       {isConnected?<>
-        {localStream?.active ? <RTCView style={{marginLeft:10, width:'28%', height: '18%', position:'absolute', bottom:10 }} streamURL={localStream!.toURL()} mirror objectFit='cover' zOrder={6} />:null}
-        {remoteStream?.active ? <RTCView style={{ width, height, position:'absolute'}} streamURL={remoteStream!.toURL()} mirror zOrder={1} />:null}
+        {remoteStream?.active ? <RTCView style={{ width, height, position:'absolute'}} streamURL={remoteStream!.toURL()} zOrder={1} mirror/>:null}
+        {localStream?.active ? <RTCView style={{marginLeft:10, width:'28%', height: '18%', position:'absolute', bottom:10 }} streamURL={localStream!.toURL()} mirror zOrder={2} objectFit='cover' />:null}
       </>:null}
       {isConnected ?
         <View>
@@ -114,8 +114,7 @@ const HomeScreen = () => {
           
           <View style={{flex:0.8, width:'100%',}}>
           <LottieView
-          // autoSize
-          speed={searching?2:0.8}
+            speed={searching?2:0.8}
             style={{height:'100%',}}
             source={require('../../assets/84875-world-map-pinging-and-searching.json')}
             autoPlay
@@ -167,7 +166,7 @@ const HomeScreen = () => {
                 // setSearching(true)
                 // sendSearch({data:session})
               }}>
-              <Text style={{padding:10}} onPress={()=>{
+              <Text style={{padding:15, color:'red'}} onPress={()=>{
                 setSearching(false)
                 sendHangup()
               }}>Cancel</Text>
