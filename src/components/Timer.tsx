@@ -36,7 +36,7 @@ export const Timer = ({playing}:{playing:Boolean}) => {
         color={color}
         borderRadius={0}
         borderWidth={0} 
-        height={8}
+        height={10}
         progress={(callDuration * 100 / callTime) / 100} width={width}/>
         {/* </View> */}
         {/* <View style={{backgroundColor:'green', height:'100%', width:10, position:'absolute', left:0, top:0}}></View>

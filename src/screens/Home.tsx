@@ -84,27 +84,27 @@ const HomeScreen = () => {
     return iceConnectionState
   }, [myconn, iceConnectionState])
   return (
-    <View style={{flex:1, backgroundColor: colorScheme == 'dark'?'black':'white'}}>
+    <View style={{flex:1, height:'100%', backgroundColor: colorScheme == 'dark'?'black':'white'}}>
+      {isConnected?<>
+        {localStream?.active ? <RTCView style={{marginLeft:10, width:'28%', height: '18%', position:'absolute', bottom:10 }} streamURL={localStream!.toURL()} mirror objectFit='cover' zOrder={6} />:null}
+        {remoteStream?.active ? <RTCView style={{ width, height, position:'absolute'}} streamURL={remoteStream!.toURL()} mirror zOrder={1} />:null}
+      </>:null}
       {isConnected ?
-      <View>
-        <View style={{paddingVertical: 8, flexDirection:'row', justifyContent:'space-around', alignItems:'center', zIndex:10, backgroundColor: connectionState == 'connected' ? '#7CD820': '#FFD428'}}>
-          <View style={{ flexDirection:'row', justifyContent:'center', alignItems:'center'}}>
-            <FontAwesomeIcon color={'white'} name='user-o' size={20}/>
-            <Text style={{ paddingHorizontal:8, fontSize:18, color:'white', textAlign:'center',}} numberOfLines={1}>
-              {cutText(partner!.data!.name!)}
-            </Text>
+        <View>
+          <View style={{paddingVertical: 8, flexDirection:'row', justifyContent:'space-around', alignItems:'center', zIndex:10, backgroundColor: connectionState == 'connected' ? '#7CD820': '#FFD428'}}>
+            <View style={{ flexDirection:'row', justifyContent:'center', alignItems:'center'}}>
+              <FontAwesomeIcon color={'white'} name='user-o' size={20}/>
+              <Text style={{ paddingHorizontal:8, fontSize:18, color:'white', textAlign:'center',}} numberOfLines={1}>
+                {cutText(partner!.data!.name!)}
+              </Text>
+            </View>
+            <View style={{ flexDirection:'row', justifyContent:'center', alignItems:'center'}}>
+              <Flag withEmoji flagSize={25} countryCode={partner!.data!.countryCode as CountryCode} />
+              <Text style={{color:'white'}}>{cutText(countryName??'')}</Text>
+            </View>
           </View>
-          <View style={{ flexDirection:'row', justifyContent:'center', alignItems:'center'}}>
-            <Flag withEmoji flagSize={25} countryCode={partner!.data!.countryCode as CountryCode} />
-            <Text style={{color:'white'}}>{cutText(countryName??'')}</Text>
-          </View>
+          <Timer playing={Boolean(connectionState == 'connected' && network)} />
         </View>
-        <Timer playing={Boolean(connectionState == 'connected' && network)} />
-        {/* <View> */}
-          {localStream?.active ? <RTCView style={{ width:'20%', height: '20%', position: 'absolute', bottom: 20, left: 10,}} streamURL={localStream!.toURL()} mirror zOrder={1} />:null}
-          {remoteStream?.active ? <RTCView style={{ width, height, position: 'absolute'}} streamURL={remoteStream!.toURL()} mirror zOrder={5} />:null}
-        {/* </View> */}
-      </View>
       :null
       }
         {/* {localStream?.active ?  : null} */}
@@ -192,7 +192,7 @@ const HomeScreen = () => {
               sendHangup()
             }}>
               <View style={{backgroundColor:'red', justifyContent:'center', alignItems:'center', width:60, height:60, borderRadius:50}}>
-                  <Icon size={30} name={'call-outline'} style={{color:'white'}} />
+                <Icon size={30} name={'call-outline'} style={{color:'white'}} />
               </View>
             </TouchableWithoutFeedback>
             <View style={{right:15,backgroundColor:'white', position:'absolute', borderColor:'black', borderWidth:0.5, justifyContent:'center', alignItems:'center', width:40, height:40, borderRadius:50}}>
